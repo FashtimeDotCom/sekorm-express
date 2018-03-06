@@ -1,0 +1,495 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sekorm.dao.PushCallBackDao">
+
+	<resultMap id="PushCallBackResult" type="com.sekorm.model.Result">
+		<result column="TRACKING_UUID" property="uuid" jdbcType="VARCHAR" />
+		<result column="KD_COMPANY" property="com" jdbcType="VARCHAR" />
+		<result column="KD_NO" property="nu" jdbcType="VARCHAR" />
+		<result column="KD_STATE" property="state" jdbcType="VARCHAR" />
+		<result column="CONDITION" property="condition" jdbcType="VARCHAR" />
+		<result column="CREATION_DATE" property="creatTime" jdbcType="DATE" />
+		<result column="LAST_UPDATE_DATE" property="updateTime"
+			jdbcType="DATE" />
+		<collection property="data" ofType="com.sekorm.model.ResultItem">
+			<result column="TRACKING_UUID" property="uuid" jdbcType="VARCHAR" />
+			<result column="NODE_TIME" property="time" jdbcType="VARCHAR" />
+			<result column="NODE_FTIME" property="ftime" jdbcType="VARCHAR" />
+			<result column="NODE_CONTEXT" property="context" jdbcType="VARCHAR" />
+			<result column="NODE_AREA_CODE" property="areaCode" jdbcType="VARCHAR" />
+			<result column="NODE_AREA_NAME" property="areaName" jdbcType="VARCHAR" />
+			<result column="NODE_STATUS" property="status" jdbcType="VARCHAR" />
+		</collection>
+	</resultMap>
+
+	<select id="findByUUID" parameterType="String" resultMap="PushCallBackResult">
+		select
+		* from KD_LOGISTICS_TRACKING a,KD_LOGISTICS_TRACKING_DETAIL b
+		where 1=1
+		and a.tracking_uuid=b.tracking_uuid(+) and a.tracking_uuid=#{0,jdbcType=VARCHAR}
+	</select>
+	
+	<select id="findByOne" parameterType="String" resultType="HashMap">
+		select  to_char(a.SOURCE_ID)  SOURCE_ID,       
+		        a.KD_COMPANY      ,
+		        a.KD_NO          ,    
+		        a.CUSTOMER_NAME    ,    
+		        a.REFERENCE_STRING ,
+		        to_char(a.SHIP_DATE,'yyyy-mm-dd') SHIP_DATE ,
+		        a.RECEIVER_ADDRESS   ,   
+		        a.RECEIVER_NAME     ,
+		        to_char(a.return_date,'yyyy-mm-dd HH24:mi:ss') return_date,  
+		        a.RECEIVER_PHONE_NO ,
+		        b.tracking_uuid ,
+		        to_char(b.last_update_date,'yyyy-mm-dd') last_update_date,
+		        c.meaning
+		 from kd_subscribe_interface a,
+		      KD_LOGISTICS_TRACKING b,
+		      kd_lookup_values c
+		 where   a.kd_no=b.kd_no(+)
+		      and b.kd_state=c.lookup_code(+)
+		      and b.tracking_uuid=#{0,jdbcType=VARCHAR}
+	</select>
+	
+	
+	
+	<select id="findByError" resultType="HashMap">
+		select a.kd_company,a.kd_no from kd_subscribe_interface a
+		<![CDATA[ where a.return_status<>'已签收']]>  
+	</select>	
+	
+	<select id="findByNu" parameterType="String" resultMap="PushCallBackResult">
+		select *
+		from KD_LOGISTICS_TRACKING a,KD_LOGISTICS_TRACKING_DETAIL b
+		where 1=1
+		and a.tracking_uuid=b.tracking_uuid(+) and a.kd_no=#{0,jdbcType=VARCHAR}
+	</select>
+
+	<select id="findPostByNu" parameterType="String" resultType="HashMap">
+		select * from KD_SUBSCRIBE_HISTORY a
+		where 1=1 and a.kd_no=#{0,jdbcType=VARCHAR}
+	</select>
+
+	<select id="findByAll" parameterType="String" resultMap="PushCallBackResult">
+		select *
+		from KD_LOGISTICS_TRACKING a,KD_LOGISTICS_TRACKING_DETAIL b
+		where 1=1
+		and a.tracking_uuid=b.tracking_uuid(+)
+	</select>
+
+	<select id="findPushAll" resultType="HashMap">
+		select * from
+		KD_SUBSCRIBE_INTERFACE where RETURN_STATUS is null and edit_status is null
+	</select>
+
+	<select id="findByState" parameterType="com.sekorm.model.Result"
+		resultType="String">
+		<![CDATA[
+		select  a.subscribe_uuid uuid from KD_SUBSCRIBE_HISTORY a,kd_callback_status  b 
+		where a.subscribe_uuid=b.tracking_uuid and a.kd_company=#{com,jdbcType=VARCHAR} 
+		 and a.kd_no=#{nu,jdbcType=VARCHAR} 
+		]]>
+	</select>
+
+	<select id="findCallBackStatusAll" resultType="com.sekorm.model.NoticeRequest">
+	<![CDATA[
+		select TRACKING_UUID uuid,
+		KD_JK_STATUS status,
+		KD_JK_MESSAGE message,
+		KD_JK_EXCEPTION exceptionStatus
+		from KD_CALLBACK_STATUS a
+   		where 1=1 and a.KD_JK_EXCEPTION='true' and a.kd_jk_num<4
+   	]]>
+	</select>
+	
+	<select id="findDeliveryInfo" parameterType="HashMap" resultType="HashMap">
+		<![CDATA[
+		select  to_char(g.l) LINE,g.* from (
+		select rownum l,f.* from (
+		select  to_char(a.SOURCE_ID)  SOURCE_ID,       
+		        a.KD_COMPANY      ,
+		        a.KD_NO          ,    
+		        a.CUSTOMER_NAME    ,    
+		        a.REFERENCE_STRING ,
+		        to_char(a.SHIP_DATE,'yyyy-mm-dd') SHIP_DATE ,
+		        a.RECEIVER_ADDRESS   ,   
+		        a.RECEIVER_NAME     ,  
+		        a.RECEIVER_PHONE_NO ,
+		        b.tracking_uuid ,
+		        to_char(b.last_update_date,'yyyy-mm-dd') last_update_date,
+		        c.meaning
+		 from kd_subscribe_interface a,
+		      KD_LOGISTICS_TRACKING b,
+		      kd_lookup_values c
+		 where   a.kd_no=b.kd_no(+)
+		      and b.kd_state=c.lookup_code(+)  
+		      and a.source_type='交货号'
+		 ]]>
+		 <if test="date!=null">
+			and to_char(a.SHIP_DATE,'yyyy-mm-dd')=#{date}  		
+   		</if>
+   		<if test="khm!=null">
+			and  a.customer_name like '%'||#{khm}||'%'	 	
+   		</if>
+   		<if test="kddh!=null">
+			and  a.kd_no=#{kddh} 		
+   		</if>
+   		<if test="jhh!=null">
+			and  a.REFERENCE_STRING like '%'||#{jhh}||'%'	
+   		</if>
+   		<if test="kdgs!=null">
+			and  a.kd_company=#{kdgs}		
+   		</if>     
+   		<if test="wlzt!=null">
+			and b.kd_state=#{wlzt}		
+   		</if>
+		 order by a.ship_date desc    
+		   ) f )g  
+		 where g.l between   #{start}  and #{end} 
+	</select>
+	
+	<select id="findDeliveryInfoTotle" parameterType="HashMap" resultType="Integer">
+		<![CDATA[
+		select count(1) num
+	   from kd_subscribe_interface a,
+		      KD_LOGISTICS_TRACKING b,
+		      kd_lookup_values c
+		 where a.kd_no=b.kd_no(+)
+		      and b.kd_state=c.lookup_code(+)  
+		      and a.source_type='交货号'
+		 ]]>
+		 <if test="date!=null">
+			and to_char(a.SHIP_DATE,'yyyy-mm-dd')=#{date}  		
+   		</if>
+   		<if test="khm!=null">
+			and  a.customer_name like '%'||#{khm}||'%' 	
+   		</if>
+   		<if test="kddh!=null">
+			and  a.kd_no=#{kddh} 		
+   		</if>
+   		<if test="jhh!=null">
+			and  a.REFERENCE_STRING like '%'||#{jhh}||'%'	
+   		</if>
+   		<if test="kdgs!=null">
+			and  a.kd_company=#{kdgs}		
+   		</if>     
+   		<if test="wlzt!=null">
+			and b.kd_state=#{wlzt}		
+   		</if>
+	</select>
+	
+	<insert id="insertResult" parameterType="com.sekorm.model.Result">
+		insert into
+		KD_LOGISTICS_TRACKING
+		(TRACKING_UUID, KD_COMPANY, KD_NO, KD_STATE,
+		CONDITION)
+		values
+		(#{uuid,jdbcType=VARCHAR},#{com,jdbcType=VARCHAR},#{nu,jdbcType=VARCHAR},#{state,jdbcType=VARCHAR},#{condition,jdbcType=VARCHAR})
+
+	</insert>
+
+	<insert id="insertResultItem" parameterType="com.sekorm.model.ResultItem">
+		insert into KD_LOGISTICS_TRACKING_DETAIL
+		(TRACKING_UUID,
+		NODE_TIME,
+		NODE_FTIME,
+		NODE_CONTEXT
+		<if test="areaCode!=null">
+			,NODE_AREA_CODE,
+		</if>
+		<if test="areaName!=null">
+			NODE_AREA_NAME,
+		</if>
+		<if test="status!=null">
+			NODE_STATUS
+		</if>
+		)
+		values
+		(
+		#{uuid,jdbcType=VARCHAR},
+		#{time,jdbcType=VARCHAR},
+		#{ftime,jdbcType=VARCHAR},
+		#{context,jdbcType=VARCHAR}
+		<if test="areaCode!=null">
+			, #{areaCode,jdbcType=VARCHAR},
+		</if>
+		<if test="areaName!=null">
+			#{areaName,jdbcType=VARCHAR},
+		</if>
+		<if test="status!=null">
+			#{status,jdbcType=VARCHAR}
+		</if>
+		)
+	</insert>
+
+	<insert id="insertNoticeRequest" parameterType="com.sekorm.model.NoticeRequest">
+		insert into KD_CALLBACK_STATUS
+		(TRACKING_UUID,
+		<if test="message!=null">
+			KD_JK_MESSAGE,
+		</if>
+		<if test="exceptionStatus!=null">
+			KD_JK_EXCEPTION,
+		</if>
+		KD_JK_STATUS
+		)
+		values
+		(#{uuid,jdbcType=VARCHAR},
+		<if test="message!=null">
+			#{message,jdbcType=VARCHAR},
+		</if>
+		<if test="exceptionStatus!=null">
+			#{exceptionStatus,jdbcType=VARCHAR},
+		</if>
+		#{status,jdbcType=VARCHAR}
+		)
+	</insert>
+
+	<insert id="insertTaskRequest" parameterType="com.sekorm.model.TaskRequest">
+		insert into KD_SUBSCRIBE_HISTORY (
+		<if test="company!=null">
+			KD_COMPANY,
+		</if>
+		KD_NO,
+		<if test="from!=null">
+			FROM_CITY,
+		</if>
+		<if test="to!=null">
+			TO_CITY
+		</if>
+		SUBSCRIBE_UUID
+		) values (
+		<if test="company!=null">
+			#{company,jdbcType=VARCHAR},
+		</if>
+		#{number},
+		<if test="from!=null">
+			#{from,jdbcType=VARCHAR},
+		</if>
+		<if test="to!=null">
+			#{to,jdbcType=VARCHAR},
+		</if>
+		#{uuid,jdbcType=VARCHAR}
+		)
+	</insert>
+
+	<insert id="insertPushHistory" parameterType="HashMap">
+		insert into KD_SUBSCRIBE_HISTORY(
+			SUBSCRIBE_UUID,
+			KD_COMPANY,
+			KD_NO,
+			SUBSCRIBE_RETURN_CODE,
+			SUBSCRIBE_RETURN_MESSAGE,
+			SUBSCRIBE_RESULT,
+			CREATION_DATE
+			)
+			values(
+			#{uuid,jdbcType=VARCHAR},#{com,jdbcType=VARCHAR},#{nu,jdbcType=VARCHAR},
+			#{code,jdbcType=VARCHAR},#{message,jdbcType=VARCHAR},#{result,jdbcType=VARCHAR},sysdate
+		)
+	</insert>
+
+	<update id="updateResult" parameterType="com.sekorm.model.Result">
+		update
+		KD_LOGISTICS_TRACKING
+		set
+		KD_COMPANY=#{com,jdbcType=VARCHAR},
+		KD_NO=#{nu,jdbcType=VARCHAR},
+		KD_STATE=#{state,jdbcType=VARCHAR},
+		CONDITION=#{condition,jdbcType=VARCHAR},
+		LAST_UPDATE_DATE=sysdate
+		where TRACKING_UUID=#{uuid,jdbcType=VARCHAR}
+	</update>
+	
+	
+	<update id="updateResultStatus" parameterType="HashMap">
+		update
+		KD_LOGISTICS_TRACKING
+		set
+		KD_STATE=#{status,jdbcType=VARCHAR},
+		LAST_UPDATE_DATE=sysdate
+		where TRACKING_UUID=#{uuid,jdbcType=VARCHAR}
+	</update>
+	
+	<update id="updatePush" parameterType="HashMap">
+		update KD_SUBSCRIBE_INTERFACE
+			set
+			RETURN_STATUS=#{status},
+			<if test='status=="已签收"'>
+			RETURN_DATE=to_date(#{return_date},'yyyy-mm-dd HH24:mi:ss' ),
+			</if>
+			LAST_UPDATE_DATE=sysdate
+		where 1=1 and KD_NO=#{nu}
+	</update>
+	
+	<update id="updateByOne" parameterType="HashMap">
+		update kd_subscribe_interface a set a.return_status=DECODE(#{status},'0','已订阅','已签收')
+		 ,a.return_date=TO_DATE(DECODE(#{status},'0','',#{date}),'yyyy-mm-dd HH24:mi:ss')  
+		 , a.edit_status='Y' 
+		 where a.kd_no=#{no}
+	</update>
+
+	<update id="updateNoticeRequest" parameterType="com.sekorm.model.NoticeRequest">
+		update KD_CALLBACK_STATUS
+		<set>
+			<if test="message!=null">
+				KD_JK_MESSAGE=#{message,jdbcType=VARCHAR},
+			</if>
+			<if test="exceptionStatus!=null">
+				KD_JK_EXCEPTION=#{exceptionStatus,jdbcType=VARCHAR},
+			</if>
+			<if test="status!=null">
+				KD_JK_STATUS=#{status,jdbcType=VARCHAR},
+			</if>
+				LAST_UPDATE_DATE=sysdate ,
+			<if test="exceptionStatus=='true'">
+				KD_JK_NUM=KD_JK_NUM+1
+			</if>
+		</set>
+		where 1=1 and TRACKING_UUID=#{uuid,jdbcType=VARCHAR}  
+	</update>
+	
+	<insert id="insertLog" parameterType="HashMap">
+		insert into  EXPRESS_LOG(
+		UUID,UPDATE_NO,UPDATE_USER,UPDATE_STATUS,UPDATE_DATE,
+		OLD_STATUS
+		<if test="old_date!=null">
+		,OLD_DATE
+		</if>
+		)
+		values(
+		#{uuid,jdbcType=VARCHAR},#{no,jdbcType=VARCHAR},
+		#{name,jdbcType=VARCHAR},#{status,jdbcType=VARCHAR},
+		decode(#{status,jdbcType=VARCHAR},'3',#{date,jdbcType=VARCHAR},''),
+		#{old_status,jdbcType=VARCHAR}
+		<if	test="old_date!=null">
+		,#{old_date,jdbcType=VARCHAR}
+		</if>
+		)
+	</insert>
+
+
+	<delete id="deleteResult" parameterType="String">
+		delete from
+		KD_LOGISTICS_TRACKING where tracking_uuid=#{0,jdbcType=VARCHAR}
+	</delete>
+
+	<delete id="deleteResultItem" parameterType="String">
+		delete from
+		KD_LOGISTICS_TRACKING_DETAIL where tracking_uuid=#{0,jdbcType=VARCHAR}
+	</delete>
+
+	<select id="findLog" parameterType="HashMap" resultType="HashMap">
+		select * from (
+		select rownum nu,a.UUID,   
+		a.UPDATE_NO ,
+		a.UPDATE_USER  ,
+		to_char(a.CREATE_DATE,'yyyy-mm-dd hh24:mi:ss')  CREATE_DATE,
+		a.UPDATE_STATUS,  
+		a.UPDATE_DATE,
+		a.OLD_DATE , 
+		a.OLD_STATUS
+		from EXPRESS_LOG a
+		where 1=1 
+		<if test="no!=null">
+	    	and	a.update_no like '%'||#{no,jdbcType=VARCHAR}||'%'	
+	    </if>
+	    <if test="name!=null">
+	    	and a.update_user like '%'||#{name,jdbcType=VARCHAR}||'%'	
+	    </if>
+	    <if test="date!=null">
+	    	and to_char(a.create_date,'yyyy-mm-dd')=#{date,jdbcType=VARCHAR}
+	    </if>
+		) f where f.nu between #{start,jdbcType=VARCHAR} and #{end,jdbcType=VARCHAR}
+	</select>
+	
+	<select id="findLogCount" parameterType="HashMap" resultType="Integer">
+		select count(1) from EXPRESS_LOG a
+		where 1=1 
+		<if test="no!=null">
+	    	and	a.update_no like '%'||#{no,jdbcType=VARCHAR}||'%'	
+	    </if>
+	    <if test="name!=null">
+	    	and a.update_user like '%'||#{name,jdbcType=VARCHAR}||'%'	
+	    </if>
+	    <if test="date!=null">
+	    	and to_char(a.create_date,'yyyy-mm-dd')=#{date,jdbcType=VARCHAR}
+	    </if>
+	</select>
+	
+	<select id="findInvoiceInfo" parameterType="HashMap" resultType="HashMap">
+		<![CDATA[
+		select  to_char(g.l) LINE,g.* from (
+		select rownum l,f.* from (
+		select  to_char(a.SOURCE_ID)  SOURCE_ID,       
+		        a.KD_COMPANY      ,
+		        a.KD_NO          ,    
+		        a.CUSTOMER_NAME    ,    
+		        a.REFERENCE_STRING ,
+		        to_char(a.SHIP_DATE,'yyyy-mm-dd') SHIP_DATE ,
+		        a.RECEIVER_ADDRESS   ,   
+		        a.RECEIVER_NAME     ,  
+		        a.RECEIVER_PHONE_NO ,
+		        b.tracking_uuid ,
+		        to_char(b.last_update_date,'yyyy-mm-dd') last_update_date,
+		        c.meaning
+		 from kd_subscribe_interface a,
+		      KD_LOGISTICS_TRACKING b,
+		      kd_lookup_values c
+		 where   a.kd_no=b.kd_no(+)
+		      and b.kd_state=c.lookup_code(+)  
+		      and a.source_type='发票号'
+		 ]]>
+		 <if test="date!=null">
+			and to_char(a.SHIP_DATE,'yyyy-mm-dd')=#{date}  		
+   		</if>
+   		<if test="khm!=null">
+			and  a.customer_name like '%'||#{khm}||'%'	 	
+   		</if>
+   		<if test="kddh!=null">
+			and  a.kd_no=#{kddh} 		
+   		</if>
+   		<if test="jhh!=null">
+			and  a.REFERENCE_STRING like '%'||#{jhh}||'%'	
+   		</if>
+   		<if test="kdgs!=null">
+			and  a.kd_company=#{kdgs}		
+   		</if>     
+   		<if test="wlzt!=null">
+			and b.kd_state=#{wlzt}		
+   		</if>
+		 order by a.ship_date desc    
+		   ) f )g  
+		 where g.l between   #{start}  and #{end} 
+	</select>
+	
+	<select id="findInvoiceInfoTotle" parameterType="HashMap" resultType="Integer">
+		<![CDATA[
+		select count(1) num
+	   from kd_subscribe_interface a,
+		      KD_LOGISTICS_TRACKING b,
+		      kd_lookup_values c
+		 where a.kd_no=b.kd_no(+)
+		      and b.kd_state=c.lookup_code(+) 
+		      and a.source_type='发票号' 
+		 ]]>
+		 <if test="date!=null">
+			and to_char(a.SHIP_DATE,'yyyy-mm-dd')=#{date}  		
+   		</if>
+   		<if test="khm!=null">
+			and  a.customer_name like '%'||#{khm}||'%' 	
+   		</if>
+   		<if test="kddh!=null">
+			and  a.kd_no=#{kddh} 		
+   		</if>
+   		<if test="jhh!=null">
+			and  a.REFERENCE_STRING like '%'||#{jhh}||'%'	
+   		</if>
+   		<if test="kdgs!=null">
+			and  a.kd_company=#{kdgs}		
+   		</if>     
+   		<if test="wlzt!=null">
+			and b.kd_state=#{wlzt}		
+   		</if>
+	</select>
+	
+</mapper>

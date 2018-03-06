@@ -1,0 +1,38 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sekorm.dao.RoleDao">
+	
+	<select id="exists" parameterType="com.sekorm.entity.RolePermssion" resultType="Integer">
+		select count(1) from sys_roles_permissions where role_id=#{roleId,jdbcType=VARCHAR} and permission_id=#{permissionId,jdbcType=VARCHAR}
+	</select>	
+	
+	<select id="findInfo" parameterType="String" resultType="HashMap">
+		select * from sys_users a,sys_users_roles b,sys_roles c,sys_roles_permissions d,sys_permissions e
+		where a.id=b.user_id(+) and b.role_id=c.id(+) and c.id=d.role_id(+) and d.permission_id=e.id(+)
+		and a.username=#{0,jdbcType=VARCHAR}
+	</select>
+	
+	<select id="findRoleId" resultType="HashMap">
+		select * from sys_roles
+	</select>
+	
+	<insert id="createRole" parameterType="com.sekorm.entity.Role">
+		insert into sys_roles(id,role, description, available) 
+		values(#{id,jdbcType=VARCHAR},#{role,jdbcType=VARCHAR},#{description,jdbcType=VARCHAR},#{available,jdbcType=VARCHAR})
+	</insert>
+	
+	<insert id="correlationPermissions" parameterType="com.sekorm.entity.RolePermssion">
+		insert into sys_roles_permissions(role_id, permission_id) values(#{roleId,jdbcType=VARCHAR},#{permissionId,jdbcType=VARCHAR})
+	</insert>
+	
+	<delete id="deleteByUserRole" parameterType="String">
+		delete from sys_users_roles where role_id=#{0,jdbcType=VARCHAR}
+	</delete>
+	
+	<delete id="deleteRole" parameterType="String">
+		delete from sys_roles where id=#{0,jdbcType=VARCHAR}
+	</delete>
+	
+	<delete id="uncorrelationPermissions" parameterType="com.sekorm.entity.RolePermssion">
+		delete from sys_roles_permissions where role_id=#{roleId,jdbcType=VARCHAR} and permission_id=#{permissionId,jdbcType=VARCHAR}
+	</delete>
+</mapper>

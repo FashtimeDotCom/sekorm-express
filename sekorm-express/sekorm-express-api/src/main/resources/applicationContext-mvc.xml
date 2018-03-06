@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:task="http://www.springframework.org/schema/task" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+            http://www.springframework.org/schema/beans/spring-beans.xsd 
+            http://www.springframework.org/schema/aop 
+            http://www.springframework.org/schema/aop/spring-aop.xsd
+            http://www.springframework.org/schema/tx 
+            http://www.springframework.org/schema/tx/spring-tx.xsd
+            http://www.springframework.org/schema/mvc 
+            http://www.springframework.org/schema/mvc/spring-mvc.xsd
+            http://www.springframework.org/schema/context 
+            http://www.springframework.org/schema/context/spring-context.xsd
+            http://www.springframework.org/schema/task  
+			http://www.springframework.org/schema/task/spring-task.xsd ">
+	<!-- 启用spring mvc 注解 -->
+	<context:annotation-config />
+	<context:component-scan base-package="com" />
+	
+	<mvc:annotation-driven>
+		<mvc:message-converters register-defaults="true">
+			<bean class="org.springframework.http.converter.StringHttpMessageConverter">
+				<property name="supportedMediaTypes" value="text/plain;charset=UTF-8" />
+			</bean>
+		</mvc:message-converters>
+	</mvc:annotation-driven>
+	<!--拦截器 -->
+	<mvc:interceptors>  
+    	<!-- 对所有请求都拦截，公共拦截器可以有多个 -->  
+    	<bean name="baseInterceptor" class="com.sekorm.interceptor.BaseInterceptor" />  
+    </mvc:interceptors>
+    <!-- 根据路径后缀，选择不同视图 -->
+    <bean  class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+        <property name="favorPathExtension" value="true" />  
+        <property name="favorParameter" value="true" />  
+        <property name="ignoreAcceptHeader" value="true" /> 
+        <property name="defaultContentType" value="application/json" />  
+        <property name="mediaTypes">  
+            <map>  
+                <!-- 告诉视图解析器，返回的类型为json格式 -->  
+                <entry key="json" value="application/json" />  
+                <entry key="xml" value="application/xml" />  
+                <entry key="html" value="text/html" />  
+                <entry key="file" value="application/octet-stream" />  
+                <entry key="image" value="image/*" />  
+            </map>  
+        </property>         
+    </bean>  
+    
+    <!--避免IE执行AJAX时，返回JSON出现下载文件 -->  
+    <bean id="mappingJacksonHttpMessageConverter"  
+        class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">  
+        <property name="supportedMediaTypes">  
+            <list>  
+                <value>text/html;charset=UTF-8</value>  
+            </list>  
+        </property>  
+    </bean>  
+    
+</beans>

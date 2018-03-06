@@ -1,0 +1,17 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sekorm.dao.PermissionDao">
+	
+	<insert id="createPermission" parameterType="com.sekorm.entity.Permission">
+		insert into sys_permissions(id,permission, description, available) values
+		(#{id,jdbcType=VARCHAR},#{permission,jdbcType=VARCHAR},#{description,jdbcType=VARCHAR},#{available,jdbcType=VARCHAR})
+	</insert>
+	
+	<delete id="deleteByRolePermission" parameterType="String">
+		delete from sys_roles_permissions where permission_id=#{0,jdbcType=VARCHAR}
+	</delete>
+	
+	<delete id="deletePermission" parameterType="String">
+		delete from sys_permissions where id=#{0,jdbcType=VARCHAR}
+	</delete>
+	
+</mapper>

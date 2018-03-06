@@ -1,0 +1,89 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sekorm.dao.UserDao">
+	
+	<insert id="createUser" parameterType="com.sekorm.entity.User">
+		insert into sys_users(id,username, password, salt, locked) values(
+		#{id,jdbcType=VARCHAR},#{username,jdbcType=VARCHAR},#{password,jdbcType=VARCHAR},#{salt,jdbcType=VARCHAR},#{locked,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="getUsersInfo" parameterType="HashMap" resultType="HashMap">
+		select * from (
+		<![CDATA[select rownum nu ,a.username,a.id,c.role from sys_users a,
+		(select * from sys_users_roles,sys_roles where role_id=id and role<>'admin' ) b
+		,sys_roles c
+   			 where a.id=b.user_id(+) and b.role_id=c.id(+)
+   		 ]]>
+		<if test="username!=null">
+		and username like '%'||#{username,jdbcType=VARCHAR}||'%' 
+		</if>
+		) f  where f.nu between   #{start}  and #{end} 
+	</select>
+	
+	<select id="getUsersInfoCount" parameterType="HashMap" resultType="Integer">
+		<![CDATA[select count(1) num from sys_users a,
+		(select * from sys_users_roles,sys_roles where role_id=id and role<>'admin') b
+		,sys_roles c
+   		 	where a.id=b.user_id(+) and b.role_id=c.id(+)
+   		 ]]>
+		<if test="username!=null">
+		and username like '%'||#{username,jdbcType=VARCHAR}||'%' 
+		</if>
+	</select>
+	
+	<select id="findOne" parameterType="String" resultType="com.sekorm.entity.User">
+		select id, username, password, salt, locked from sys_users where id=#{0,jdbcType=VARCHAR}
+	</select>
+	
+	<insert id="correlationRoles" parameterType="com.sekorm.entity.UserRole">
+		insert into sys_users_roles(user_id, role_id) values(#{userId,jdbcType=VARCHAR},#{roleId,jdbcType=VARCHAR})
+	</insert>
+	
+	<delete id="uncorrelationRoles" parameterType="com.sekorm.entity.UserRole">
+		delete from sys_users_roles where user_id=#{userId,jdbcType=VARCHAR} and role_id=#{roleId,jdbcType=VARCHAR}
+	</delete>
+	
+	<delete id="deleteUser" parameterType="Long">
+		delete from sys_users where id=#{0,jdbcType=VARCHAR}
+	</delete>
+	
+	<select id="findByUsername" parameterType="String" resultType="com.sekorm.entity.User" >
+		select id, username, password, salt, locked from sys_users where username=#{0,jdbcType=VARCHAR}
+	</select>
+	
+	<select id="exists" parameterType="com.sekorm.entity.UserRole" resultType="Integer">
+		select count(1) from sys_users_roles where user_id=#{userId,jdbcType=VARCHAR} and role_id=#{roleId,jdbcType=VARCHAR}
+	</select>
+	
+	<select id="findRoles" parameterType="String" resultType="String">
+		select role from sys_users u, sys_roles r,sys_users_roles ur where u.username=#{0,jdbcType=VARCHAR} 
+		and u.id=ur.user_id and r.id=ur.role_id
+	</select>
+	
+	<select id="findPermissions" parameterType="String" resultType="String">
+		select permission from sys_users u, sys_roles r, sys_permissions p, sys_users_roles ur, sys_roles_permissions rp 
+		where 
+		u.username=#{0,jdbcType=VARCHAR}
+		and u.id=ur.user_id and r.id=ur.role_id 
+		and r.id=rp.role_id and p.id=rp.permission_id
+	</select>
+	
+	<update id="updateUser" parameterType="com.sekorm.entity.UserRole">
+		update sys_users 
+		<set> 
+			<if test="username!=null">
+			username=#{username,jdbcType=VARCHAR},
+			</if> 
+			<if test="password!=null">
+			password=#{password,jdbcType=VARCHAR},
+			</if>
+			<if test="salt!=null">
+			salt=#{salt,jdbcType=VARCHAR}, 
+			</if>
+			<if test="locked!=null">
+			locked=#{locked,jdbcType=VARCHAR} 
+			</if>
+		</set>
+		where id=#{id,jdbcType=VARCHAR}
+	</update>
+		
+</mapper>

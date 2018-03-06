@@ -1,0 +1,175 @@
+﻿<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="renderer" content="webkit|ie-comp|ie-stand">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+<!--[if lt IE 9]>
+<script type="text/javascript" src="lib/html5shiv.js"></script>
+<script type="text/javascript" src="lib/respond.min.js"></script>
+<![endif]-->
+<link rel="stylesheet" type="text/css" href="static/h-ui/css/H-ui.min.css" />
+<link rel="stylesheet" type="text/css" href="lib/Hui-iconfont/1.0.8/iconfont.css" />
+<link rel="stylesheet" type="text/css" href="static/h-ui.admin/css/H-ui.admin.css" />
+<link rel="stylesheet" type="text/css" href="static/h-ui.admin/skin/default/skin.css" id="skin" />
+<style type="text/css">
+.table>tbody>tr>td{  
+        text-align:center;  
+}  
+/* dataTables表头居中 */  
+.table>thead:first-child>tr:first-child>th{  
+        text-align:center;  
+}  
+</style>
+<!--[if IE 6]>
+<script type="text/javascript" src="lib/DD_belatedPNG_0.0.8a-min.js" ></script>
+<script>DD_belatedPNG.fix('*');</script>
+<![endif]-->
+<title>用户管理</title>
+</head>
+<body>
+<nav class="breadcrumb"><i class="Hui-iconfont">&#xe67f;</i> 首页
+	<span class="c-gray en">&gt;</span>
+	系统管理
+	<span class="c-gray en">&gt;</span>
+	员工权限信息
+	<a class="btn btn-success radius r" style="line-height:1.6em;margin-top:3px" href="javascript:location.replace(location.href);" title="刷新" ><i class="Hui-iconfont">&#xe68f;</i></a>
+</nav>
+<div class="page-container">
+	<div class="text-l">
+		 用户名：
+		<input type="text" name="" id="username" placeholder="用户名" style="width:200px" class="input-text">
+		<button name="" id="find" class="btn btn-success" type="submit"><i class="Hui-iconfont">&#xe665;</i> 搜索</button>
+	</div>
+	<div class="line mt-10"></div>
+	<div class="mt-10">
+		<table id="table" class="table table-border table-bordered table-bg table-hover table-sort">
+			<thead>
+				<tr class="text-c">
+					<th width="60">行号</th>
+					<th width="120">用户名</th>
+					<th width="60">数据编辑权限</th>
+					<th width="30">启用权限</th>
+					<th width="30">id</th>
+				</tr>
+			</thead>
+		</table>
+	</div>
+</div>
+<!--_footer 作为公共模版分离出去-->
+<script type="text/javascript" src="lib/jquery/1.9.1/jquery.min.js"></script> 
+<script type="text/javascript" src="lib/layer/2.4/layer.js"></script>
+<script type="text/javascript" src="static/h-ui/js/H-ui.min.js"></script> 
+<script type="text/javascript" src="static/h-ui.admin/js/H-ui.admin.js"></script> <!--/_footer 作为公共模版分离出去-->
+
+<!--请在下方写此页面业务相关的脚本-->
+<script type="text/javascript" src="lib/My97DatePicker/4.8/WdatePicker.js"></script> 
+<script type="text/javascript" src="lib/datatables/1.10.0/jquery.dataTables.min.js"></script> 
+<script type="text/javascript" src="lib/laypage/1.2/laypage.js"></script>
+<script type="text/javascript">
+var table;
+$(document).ready(function () {
+	table=$("#table").DataTable({
+		"language": {
+            "sProcessing": "处理中...",
+            "sLengthMenu": "每页_MENU_条 ",
+            "sZeroRecords": "没有匹配结果",
+            "sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+            "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+            "sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+            "sInfoPostFix": "",
+            "sSearch": "搜索:",
+            "sUrl": "",
+            "sEmptyTable": "表中数据为空",
+            "sLoadingRecords": "载入中...",
+            "sInfoThousands": ",",
+            "oPaginate": {
+                "sFirst": "首页",
+                "sPrevious": "上页",
+                "sNext": "下页",
+                "sLast": "末页"
+            }
+            },
+            "aLengthMenu": [10, 15, 20],
+            "bAutoWidth": false,
+            "bDeferRender": true,
+            "bLengthChange": true,
+            "sAjaxSource": "find/Info",
+            "bPaginate": true,
+            "bServerSide": true,
+            "bSort": false,
+            "iDisplayLength": 10,
+            "searching": false,//是否显示搜索框
+            "bFilter": true,
+            "bProcessing": true,
+            "fnServerData":retrieveData,
+        	"columns": [
+                    {"data": "nu"},
+    	            {"data": "username"},
+    	            {"data": "role","render": function ( data, type, row, meta ) {
+    	            		if(data=="null"){
+								return "停用";    	            			
+    	            		}else{
+    	            			return "启用"; 
+    	            		}
+    	            	}
+    	            },
+                    {"data": "id","render": function ( data, type, row, meta ) {
+                    	return '<a style="text-decoration:none" class="ml-10" onclick="deleteRole(\''+data+'\')"  title="停用"><i class="Hui-iconfont">&#xe631;</i></a>'+
+           					'<a style="text-decoration:none" class="ml-10" onClick="edit(\''+data+'\')" title="启用"><i class="Hui-iconfont">&#xe615;</i></a>'; 	
+					}   ,"visible": true},
+                    {"data": "id","visible": false}
+        		]
+});
+});
+function retrieveData(sSource, aoData, fnCallback ) {
+	aoData.push(  {"name":"username", "value":$("#username").val()}
+	);
+    $.ajax({
+        url : 'find/Info',//这个就是请求地址对应sAjaxSource
+        data : aoData,//这个是把datatable的一些基本数据传给后台,比如起始位置,每页显示的行数
+        type : 'get',
+        success : function(result) {
+        	try{
+            	fnCallback(result);//把返回的数据传给这个方法就可以了,datatable会自动绑定数据的
+        	}catch (e) {
+        		layer.msg("身份过期,正在跳转登录界面");
+        		setTimeout(function(){window.location.href="login.html"}, 3000);
+        		return;
+			}
+        },error : function(msg) {
+        	layer.msg("查无数据！");
+        }
+    });
+}
+
+$("#find").click(function(){
+	table.ajax.reload();
+}); 
+
+function edit(data){
+	$.post("find/updateRole.json",{id:data}, function(data){
+		 if(data=='success'){
+			 layer.msg("启用权限成功");
+			 table.ajax.reload();
+		 }else{
+			 layer.msg("启用权限失败");
+		 }
+	},"text");
+}
+function deleteRole(data){
+	$.post("find/deleteRole.json",{id:data}, function(data){
+		 if(data=='success'){
+			 layer.msg("停用权限成功");
+			 table.ajax.reload();
+		 }else{
+			 layer.msg("停用权限失败");
+		 }
+	},"text");
+	table.ajax.reload();
+}
+</script> 
+</body>
+</html>

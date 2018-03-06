@@ -1,0 +1,245 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sekorm.dao.PushCallBackDao">
+
+	<resultMap id="PushCallBackResult" type="com.sekorm.model.Result">
+		<result column="TRACKING_UUID" property="uuid" jdbcType="VARCHAR" />
+		<result column="KD_COMPANY" property="com" jdbcType="VARCHAR" />
+		<result column="KD_NO" property="nu" jdbcType="VARCHAR" />
+		<result column="KD_STATE" property="state" jdbcType="VARCHAR" />
+		<result column="CONDITION" property="condition" jdbcType="VARCHAR" />
+		<result column="CREATION_DATE" property="creatTime" jdbcType="DATE" />
+		<result column="LAST_UPDATE_DATE" property="updateTime"
+			jdbcType="DATE" />
+		<collection property="data" ofType="com.sekorm.model.ResultItem">
+			<result column="TRACKING_UUID" property="uuid" jdbcType="VARCHAR" />
+			<result column="NODE_TIME" property="time" jdbcType="VARCHAR" />
+			<result column="NODE_FTIME" property="ftime" jdbcType="VARCHAR" />
+			<result column="NODE_CONTEXT" property="context" jdbcType="VARCHAR" />
+			<result column="NODE_AREA_CODE" property="areaCode" jdbcType="VARCHAR" />
+			<result column="NODE_AREA_NAME" property="areaName" jdbcType="VARCHAR" />
+			<result column="NODE_STATUS" property="status" jdbcType="VARCHAR" />
+		</collection>
+	</resultMap>
+
+	<select id="findByUUID" parameterType="String" resultMap="PushCallBackResult">
+		select
+		* from KD_LOGISTICS_TRACKING a,KD_LOGISTICS_TRACKING_DETAIL b
+		where 1=1
+		and a.tracking_uuid=b.tracking_uuid(+) and a.tracking_uuid=#{0,jdbcType=VARCHAR}
+	</select>
+
+	<select id="findByNu" parameterType="String" resultMap="PushCallBackResult">
+		select *
+		from KD_LOGISTICS_TRACKING a,KD_LOGISTICS_TRACKING_DETAIL b
+		where 1=1
+		and a.tracking_uuid=b.tracking_uuid(+) and a.kd_no=#{0,jdbcType=VARCHAR}
+	</select>
+
+	<select id="findPostByNu" parameterType="String" resultType="HashMap">
+		select * from KD_SUBSCRIBE_HISTORY a
+		where 1=1 and a.kd_no=#{0,jdbcType=VARCHAR}
+	</select>
+
+	<select id="findByAll" parameterType="String" resultMap="PushCallBackResult">
+		select *
+		from KD_LOGISTICS_TRACKING a,KD_LOGISTICS_TRACKING_DETAIL b
+		where 1=1
+		and a.tracking_uuid=b.tracking_uuid(+)
+	</select>
+
+	<select id="findPushAll" resultType="HashMap">
+		select * from
+		KD_SUBSCRIBE_INTERFACE where RETURN_STATUS is null and edit_status is null
+	</select>
+	
+	<select id="findByState" parameterType="com.sekorm.model.Result"
+		resultType="String">
+		<![CDATA[
+		select  a.subscribe_uuid uuid from KD_SUBSCRIBE_HISTORY a,kd_callback_status  b 
+		where a.subscribe_uuid=b.tracking_uuid and a.kd_company=#{com,jdbcType=VARCHAR} 
+		 and a.kd_no=#{nu,jdbcType=VARCHAR} 
+		]]>
+	</select>
+
+	<select id="findCallBackStatusAll" resultType="com.sekorm.model.NoticeRequest">
+	<![CDATA[
+		select TRACKING_UUID uuid,
+		KD_JK_STATUS status,
+		KD_JK_MESSAGE message,
+		KD_JK_EXCEPTION exceptionStatus
+		from KD_CALLBACK_STATUS a
+   		where 1=1 and a.KD_JK_EXCEPTION='true' and a.kd_jk_num<4
+   	]]>
+	</select>
+
+	<insert id="insertResult" parameterType="com.sekorm.model.Result">
+		insert into
+		KD_LOGISTICS_TRACKING
+		(TRACKING_UUID, KD_COMPANY, KD_NO, KD_STATE,
+		CONDITION)
+		values
+		(#{uuid,jdbcType=VARCHAR},#{com,jdbcType=VARCHAR},
+		#{nu,jdbcType=VARCHAR},#{state,jdbcType=VARCHAR},#{condition,jdbcType=VARCHAR})
+
+	</insert>
+
+	<insert id="insertResultItem" parameterType="com.sekorm.model.ResultItem">
+		insert into KD_LOGISTICS_TRACKING_DETAIL
+		(TRACKING_UUID,
+		NODE_TIME,
+		NODE_FTIME,
+		NODE_CONTEXT
+		<if test="areaCode!=null">
+			,NODE_AREA_CODE,
+		</if>
+		<if test="areaName!=null">
+			NODE_AREA_NAME,
+		</if>
+		<if test="status!=null">
+			NODE_STATUS
+		</if>
+		)
+		values
+		(
+		#{uuid,jdbcType=VARCHAR},
+		#{time,jdbcType=VARCHAR},
+		#{ftime,jdbcType=VARCHAR},
+		#{context,jdbcType=VARCHAR}
+		<if test="areaCode!=null">
+			, #{areaCode,jdbcType=VARCHAR},
+		</if>
+		<if test="areaName!=null">
+			#{areaName,jdbcType=VARCHAR},
+		</if>
+		<if test="status!=null">
+			#{status,jdbcType=VARCHAR}
+		</if>
+		)
+	</insert>
+
+	<insert id="insertNoticeRequest" parameterType="com.sekorm.model.NoticeRequest">
+		insert into KD_CALLBACK_STATUS
+		(TRACKING_UUID,
+		<if test="message!=null">
+			KD_JK_MESSAGE,
+		</if>
+		<if test="exceptionStatus!=null">
+			KD_JK_EXCEPTION,
+		</if>
+		KD_JK_STATUS
+		)
+		values
+		(#{uuid,jdbcType=VARCHAR},
+		<if test="message!=null">
+			#{message,jdbcType=VARCHAR},
+		</if>
+		<if test="exceptionStatus!=null">
+			#{exceptionStatus,jdbcType=VARCHAR},
+		</if>
+		#{status,jdbcType=VARCHAR}
+		)
+	</insert>
+
+	<insert id="insertTaskRequest" parameterType="com.sekorm.model.TaskRequest">
+		insert into KD_SUBSCRIBE_HISTORY (
+		<if test="company!=null">
+			KD_COMPANY,
+		</if>
+		KD_NO,
+		<if test="from!=null">
+			FROM_CITY,
+		</if>
+		<if test="to!=null">
+			TO_CITY
+		</if>
+		SUBSCRIBE_UUID
+		) values (
+		<if test="company!=null">
+			#{company,jdbcType=VARCHAR},
+		</if>
+		#{number,jdbcType=VARCHAR},
+		<if test="from!=null">
+			#{from,jdbcType=VARCHAR},
+		</if>
+		<if test="to!=null">
+			#{to,jdbcType=VARCHAR},
+		</if>
+		#{uuid,jdbcType=VARCHAR}
+		)
+	</insert>
+
+	<insert id="insertPushHistory" parameterType="HashMap">
+		insert into KD_SUBSCRIBE_HISTORY(
+			SUBSCRIBE_UUID,
+			KD_COMPANY,
+			KD_NO,
+			SUBSCRIBE_RETURN_CODE,
+			SUBSCRIBE_RETURN_MESSAGE,
+			SUBSCRIBE_RESULT,
+			CREATION_DATE
+			)
+			values(
+			#{uuid,jdbcType=VARCHAR},#{com,jdbcType=VARCHAR},#{nu,jdbcType=VARCHAR},
+			#{code,jdbcType=VARCHAR},#{message,jdbcType=VARCHAR},#{result,jdbcType=VARCHAR},sysdate
+		)
+	</insert>
+
+	<update id="updateResult" parameterType="com.sekorm.model.Result">
+		update
+		KD_LOGISTICS_TRACKING
+		set
+		KD_COMPANY=#{com,jdbcType=VARCHAR},
+		KD_NO=#{nu,jdbcType=VARCHAR},
+		KD_STATE=#{state,jdbcType=VARCHAR},
+		CONDITION=#{condition,jdbcType=VARCHAR},
+		LAST_UPDATE_DATE=sysdate
+		where TRACKING_UUID=#{uuid,jdbcType=VARCHAR}
+	</update>
+
+	<update id="updatePush" parameterType="HashMap">
+		update KD_SUBSCRIBE_INTERFACE
+			set
+			RETURN_STATUS=#{status,jdbcType=VARCHAR},
+			<if test='status=="已签收"'>
+			RETURN_DATE=to_date(#{return_date,jdbcType=VARCHAR},'yyyy-mm-dd HH24:mi:ss' ),
+			</if>
+			LAST_UPDATE_DATE=sysdate
+		where 1=1 and KD_NO=#{nu,jdbcType=VARCHAR}
+	</update>
+
+	<update id="updateNoticeRequest" parameterType="com.sekorm.model.NoticeRequest">
+		update KD_CALLBACK_STATUS
+		<set>
+			<if test="message!=null">
+				KD_JK_MESSAGE=#{message,jdbcType=VARCHAR},
+			</if>
+			<if test="exceptionStatus!=null">
+				KD_JK_EXCEPTION=#{exceptionStatus,jdbcType=VARCHAR},
+			</if>
+			<if test="status!=null">
+				KD_JK_STATUS=#{status,jdbcType=VARCHAR},
+			</if>
+				LAST_UPDATE_DATE=sysdate ,
+			<if test="exceptionStatus=='true'">
+				KD_JK_NUM=KD_JK_NUM+1
+			</if>
+		</set>
+		where 1=1 and TRACKING_UUID=#{uuid,jdbcType=VARCHAR}  
+	</update>
+	
+	
+
+
+	<delete id="deleteResult" parameterType="String">
+		delete from
+		KD_LOGISTICS_TRACKING where tracking_uuid=#{0,jdbcType=VARCHAR}
+	</delete>
+
+	<delete id="deleteResultItem" parameterType="String">
+		delete from
+		KD_LOGISTICS_TRACKING_DETAIL where tracking_uuid=#{0,jdbcType=VARCHAR}
+	</delete>
+
+
+
+</mapper>
